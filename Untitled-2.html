@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>陈楚滢！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+        .note {
+            position: absolute;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            cursor: move;
+            animation: bounceIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1;
+            user-select: none;
+            max-width: 160px;
+            text-align: center;
+            font-size: 16px;
+        }
+        .note:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+        #modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .modal-content {
+            background: white;
+            padding: 40px 60px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        #confirmBtn {
+            margin-top: 30px;
+            padding: 12px 24px;
+            background: #ff4499;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        #confirmBtn:hover {
+            background: #ff2d88;
+            transform: scale(1.05);
+        }
+        /* 背景图容器+过渡效果 */
+        #bgContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* 置于底层，不遮挡便签 */
+            transition: background-image 1.5s ease-in-out; /* 过渡动画：1.5秒平滑切换 */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        /* 响应式适配手机端 */
+        @media (max-width: 768px) {
+            .note {
+                padding: 12px 16px;
+                max-width: 120px;
+                font-size: 14px;
+            }
+            .modal-content {
+                padding: 30px 40px;
+                font-size: 18px;
+            }
+            #confirmBtn {
+                padding: 10px 20px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body class="overflow-hidden h-screen w-screen relative">
+    <!-- 背景图容器（用于过渡效果） -->
+    <div id="bgContainer"></div>
+
+    <!-- 初始弹窗 -->
+    <div id="modal">
+        <div class="modal-content">
+            陈楚滢！ 🎁
+            <button id="confirmBtn">确定</button>
+        </div>
+    </div>
+
+    <!-- 音频元素 -->
+    <audio id="backgroundMusic" autoplay loop>
+        <source src="https://cunchuyinyue.oss-cn-guangzhou.aliyuncs.com/ockqAalIpRIbGAVOEeAITmJLeeAa4FYGBGECAF%20%281%29.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        // 1. 背景图数组（可自定义添加/修改图片链接）
+        const backgroundImages = [
+            "https://cunchuyinyue.oss-cn-guangzhou.aliyuncs.com/c373709a1d6f71b77b34ad4bdc1ecf0e.png",
+            "https://cunchuyinyue.oss-cn-guangzhou.aliyuncs.com/8925aae70b396cb6676f4dce2aa5ba1f.jpg", 
+            "https://cunchuyinyue.oss-cn-guangzhou.aliyuncs.com/80b84c8b7672862077a401c64334da47.jpg", // 天空云朵
+            "https://cunchuyinyue.oss-cn-guangzhou.aliyuncs.com/7ee38244263a08f41e06bcf0c1950333.jpg", // 温馨室内
+            "https://cunchuyinyue.oss-cn-guangzhou.aliyuncs.com/14f321ac75ccf3faf2140673ee37661c.jpg" ,
+             "https://cunchuyinyue.oss-cn-guangzhou.aliyuncs.com/0504a127200345da0954422b150210ed.jpg",
+             "https://cunchuyinyue.oss-cn-guangzhou.aliyuncs.com/822f815514a3e16a9a9b6dd5de99b885.jpg"
+        ];
+
+        // 2. 背景图自动切换函数
+        let currentBgIndex = 0;
+        const bgContainer = document.getElementById('bgContainer');
+        
+        // 初始化第一张背景图
+        bgContainer.style.backgroundImage = `url('${backgroundImages[0]}')`;
+
+        // 自动切换逻辑（每10秒切换一次，可修改时间）
+        function autoSwitchBackground() {
+            currentBgIndex = (currentBgIndex + 1) % backgroundImages.length;
+            bgContainer.style.backgroundImage = `url('${backgroundImages[currentBgIndex]}')`;
+        }
+
+        // 便签内容库（表情+文字，不重复）
+        const noteContents = [
+          "❤️ 记得吃饭",
+            "😘 我很想你",
+            "😊 保持好心情",
+            "🍚 按时吃饭",
+            "💖 陈楚滢",
+            "🥰 天天开心",
+            "🌟 万事顺意",
+            "😉 想你啦",
+            "💪 加油呀",
+            "😆 笑一个",
+            "🥳 超爱你",
+            "🌸 平安喜乐",
+            "🥺 别太累",
+            "😋 多吃点",
+            "😋 多吃点",
+            "✨ 好运连连",
+            "😌 放宽心",
+            "💖 么么哒",
+            "🤗 抱抱你",
+            "☀️ 心情晴朗",
+            "🌙 晚安呀",
+            "🌈 一切顺利",
+            "😇 做个好梦",
+            "💞 心心念念",
+            "😜 调皮一下",
+            "🥂 万事胜意",
+            "💖 陈楚滢",
+            "🎈 快乐加倍",
+            "💝 满心欢喜",
+            "😚 亲亲你",
+            "🔥 元气满满",
+            "💯 超优秀",
+            "🎊 喜笑颜开",
+            "🥕 多吃蔬菜",
+            "💤 好好休息",
+            "😃 超开心",
+            "🌹 爱意满满",
+            "🥧 补充能量",
+            "🌟 闪闪发光",
+            "😙 想抱抱",
+            "💗 甜蜜日常",
+            "😎 超帅气",
+            "💖 陈楚滢",
+            "👑 做自己的王",
+            "🥰 满心是你",
+            "😊 笑容灿烂",
+            "❤️ 此生有你",
+            "😘 不离不弃",
+            "🥳 幸福满满",
+            "🌸 岁月静好",
+            "💖 陈楚滢",
+            "💪 勇往直前",
+            "😆 开心就好",
+            "✨ 未来可期",
+            "🥺 心疼你",
+            "😋 好好吃饭",
+            "🌟 前程似锦",
+            "😌 悠然自得",
+            "💖 爱意浓浓",
+            "🤗 温暖相伴",
+            "💖 陈楚滢",
+            "💖 陈楚滢",
+            "☀️ 阳光明媚",
+            "🌙 月色温柔",
+            "🌈 五彩斑斓",
+            "😇 善良可爱",
+            "💯 完美无瑕",
+            "🎈 童心未泯",
+            "💝 心意满满",
+            "😚 爱你哟",
+            "🔥 热情似火",
+            "💤 安然入睡",
+            "💖 陈楚滢",
+            "💖 陈楚滢",
+            "😃 笑容满面",
+            "🌹 娇艳动人",
+            "🥕 健康成长",
+            "💗 甜蜜如初",
+            "😎 魅力十足",
+            "👑 独一无二",
+            "🥰 深情款款",
+            "😊 温柔以待",
+            "❤️ 钟爱一生",
+            "😘 宠溺你",
+            "🥳 欢乐时光",
+            "🌸 清新脱俗",
+            "💪 坚持不懈",
+            "😆 哈哈大笑",
+            "✨ 璀璨夺目",
+            "🥺 惹人怜爱",
+            "😋 美味佳肴",
+            "🌟 星光熠熠",
+            "😙 亲昵一下",
+            "💖 陈楚滢",
+            "💗 心心相印",
+            "😜 可爱俏皮",
+            "🥂 举杯同庆",
+            "🎊 普天同庆",
+            "🥧 香甜可口",
+            "🌟 梦想成真",
+            "💖 陈楚滢",
+            "😙 柔情似水",
+            "💖 浪漫满屋",
+            "🤗 关怀备至",
+            "☀️ 温暖人心",
+            "🌙 静谧美好",
+            "💖 陈楚滢",
+            "🌈 雨后彩虹",
+            "❤️ 记得吃饭",
+            "😘 天气冷了，我很想你",
+            "😊 保持好心情",
+            "🍚 按时吃饭",
+            "❤️ 早点休息",
+            "😜 别熬夜哦",
+            "😊 要开心呀",
+            "❤️ 想你啦",
+            "😋 多吃点好吃的",
+            "😊 照顾好自己",
+            "❤️ 陈楚滢",
+            "😝 要幸福哦",
+            "😊 每天都要快乐",
+            "❤️ 记得想我",
+            "😊 保持微笑",
+            "❤️ 注意身体",
+            "😛 要加油呀",
+            "😊 一切安好",
+            "❤️ 我在想你",
+            "😊 天天开心",
+            "❤️ 好好吃饭",
+            "😚 别太累了",
+            "❤️ 照顾好自己",
+            "😝 要幸福哦",
+            "😊 事事顺心",
+            "❤️ 想你每一天",
+            "😊 快乐每一天",
+            "❤️ 按时睡觉",
+            "😜 别偷懒哦",
+            "😊 要幸福呀",
+            "❤️ 记得爱自己",
+            "😋 多喝热水",
+            "😊 保持乐观",
+            "❤️ 我很想你",
+            "😝 要努力哦",
+            "😊 一切顺利",
+            "❤️ 好好生活",
+            "😚 别担心哦",
+            "😊 幸福每一天",
+            "❤️ 陈楚滢！",
+            "😊 陈楚滢金榜题名！",
+            "😚 记得吃饭",
+        ];
+
+        // 随机颜色生成
+        function getRandomColor() {
+            const colors = [
+                '#FF9AA2', '#FFB7B2', '#FFDAC1', '#E2F0CB', '#B5EAD7',
+                '#C7CEEA', '#B5EAD7', '#D9D2E9', '#FFD6A5', '#FDFFB6',
+                '#CAFFBF', '#9BF6FF', '#BDB2FF', '#FFC6FF', '#FFADAD'
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // 随机位置生成（适配电脑+手机）
+        function getRandomPosition() {
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            const noteWidth = window.innerWidth > 768 ? 160 : 120;
+            const noteHeight = window.innerWidth > 768 ? 80 : 60;
+            const x = Math.random() * (screenWidth - noteWidth);
+            const y = Math.random() * (screenHeight - noteHeight);
+            return { x, y };
+        }
+
+        // 创建便签
+        function createNote(content) {
+            const note = document.createElement('div');
+            note.className = 'note';
+            note.style.backgroundColor = getRandomColor();
+            note.style.color = '#333';
+            note.textContent = content;
+            
+            const { x, y } = getRandomPosition();
+            note.style.left = `${x}px`;
+            note.style.top = `${y}px`;
+            
+            makeDraggable(note);
+            document.body.appendChild(note);
+            note.style.zIndex = document.querySelectorAll('.note').length;
+        }
+
+        // 拖拽功能（适配鼠标/触摸）
+        function makeDraggable(element) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            element.onmousedown = dragStart;
+            element.ontouchstart = dragStart;
+
+            function dragStart(e) {
+                e = e || window.event;
+                e.preventDefault();
+                const clientX = e.clientX || e.touches[0].clientX;
+                const clientY = e.clientY || e.touches[0].clientY;
+                pos3 = clientX;
+                pos4 = clientY;
+                document.onmouseup = dragEnd;
+                document.ontouchend = dragEnd;
+                document.onmousemove = dragMove;
+                document.ontouchmove = dragMove;
+            }
+
+            function dragMove(e) {
+                e = e || window.event;
+                e.preventDefault();
+                const clientX = e.clientX || e.touches[0].clientX;
+                const clientY = e.clientY || e.touches[0].clientY;
+                pos1 = pos3 - clientX;
+                pos2 = pos4 - clientY;
+                pos3 = clientX;
+                pos4 = clientY;
+                const newTop = element.offsetTop - pos2;
+                const newLeft = element.offsetLeft - pos1;
+                const maxLeft = window.innerWidth - element.offsetWidth;
+                const maxTop = window.innerHeight - element.offsetHeight;
+                element.style.top = `${Math.max(0, Math.min(newTop, maxTop))}px`;
+                element.style.left = `${Math.max(0, Math.min(newLeft, maxLeft))}px`;
+                element.style.zIndex = document.querySelectorAll('.note').length + 1;
+            }
+
+            function dragEnd() {
+                document.onmouseup = null;
+                document.ontouchend = null;
+                document.onmousemove = null;
+                document.ontouchmove = null;
+            }
+        }
+
+        // 初始化（弹窗确认后启动所有功能）
+        document.getElementById('confirmBtn').addEventListener('click', function() {
+            // 关闭弹窗
+            document.getElementById('modal').style.display = 'none';
+            
+            // 启动背景图自动切换（每10秒一次，可修改setInterval的第二个参数，单位：毫秒）
+            setInterval(autoSwitchBackground, 3000);
+            
+            // 播放音频（规避浏览器限制）
+            const audio = document.getElementById('backgroundMusic');
+            audio.play().catch(err => {
+                console.log('点击页面任意位置授权播放音频');
+                document.body.addEventListener('click', () => audio.play(), { once: true });
+            });
+            
+            // 生成便签
+            let noteIndex = 0;
+            const noteInterval = setInterval(() => {
+                if (noteIndex < noteContents.length && noteIndex < 400) {
+                    createNote(noteContents[noteIndex]);
+                    noteIndex++;
+                } else {
+                    clearInterval(noteInterval);
+                }
+            }, 150);
+        });
+    </script>
+</body>
+</html>
